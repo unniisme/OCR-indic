@@ -118,10 +118,16 @@ if __name__ == '__main__':
             print("Downgrading " + sys.argv[i])
             Template(sys.argv[i]).DownGrade(sys.argv[i].replace(".png", "_downgraded.bmp"), int(sys.argv[1].split(":")[1]))
 
+    # elif len(sys.argv) > 1:
+    #     for i in range(1, len(sys.argv)):
+    #         print("encoding " + sys.argv[i])
+    #         print(Template(sys.argv[i]).EncodeMosaic(6))
+
     else:
-        for i in range(1, len(sys.argv)):
-            print("encoding " + sys.argv[i])
-            print(Template(sys.argv[i]).EncodeMosaic(6))
+        print("A simple image processing script. Converts png or jgp to bitmap.")
+        print("use --png_bmp [image] to convert png image to bmp and clamp it to a square.")
+        print("use --downgrade:n to downgrade clamp png to a square, and downgrade it to an nxn grid.")
+        print("Result files are saved beside the input files.")
 
 
 
