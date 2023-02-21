@@ -46,6 +46,21 @@ class Template:
         """
         Encodes the data about the image into an nxn matrix my cutting the image into a mosaic and counting the number of dark pixels in each subgrid
         """
+        def subBitmapPolicy(subBitmap):
+            return sum([1 if val == 0 else 0 for val in np.nditer(subBitmap)])/(subBitmap.shape[0] * subBitmap.shape[1])
+
+
+        gridPoints = [int(x) for x in np.linspace(0, self.size, n+1)]
+        self.mosaicEncoding = np.zeros((n,n))
+
+        for i in range(n):
+            for j in range(n):
+                subBitmap = self.bitmap[gridPoints[i]:gridPoints[i+1], gridPoints[j]:gridPoints[j+1]]
+                self.mosaicEncoding[i,j] = subBitmapPolicy(subBitmap)
+
+        return self.mosaicEncoding
+
+        ## Depriciate
         gridSize = int(self.size/n)
         self.mosaicEncoding = np.zeros((n+1,n+1))
 

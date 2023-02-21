@@ -26,7 +26,7 @@ def visualizationMatrix_clamped(x):
 # Save each encoding
 for file in os.listdir(directory):
     template = Template(os.path.join(directory, file))
-    template.EncodeMosaic(8)
+    template.EncodeMosaic(16)
     templates[file.replace(".png", "")] = template
 
 # Test similarity with A
