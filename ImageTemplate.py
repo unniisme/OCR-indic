@@ -3,6 +3,9 @@ import numpy as np
 import os
 import sys
 
+def getRadialPixel(r,t, centre):
+    return (int(r*np.cos(t) + centre[0]), int(r*np.sin(t) + centre[1]))
+
 
 def ImgToBitmap(img):
     ary = np.array(img)
@@ -14,8 +17,7 @@ def ImgToBitmap(img):
     b=b.reshape(-1)
 
     # Standard RGB to grayscale 
-    bitmap = list(map(lambda x: 0.299*x[0]+0.587*x[1]+0.114*x[2], 
-    zip(r,g,b)))
+    bitmap = list(map(lambda x: 0.299*x[0]+0.587*x[1]+0.114*x[2], zip(r,g,b)))
     bitmap = np.array(bitmap).reshape([ary.shape[0], ary.shape[1]])
     bitmap = np.dot((bitmap > 128).astype(float),255)
     return bitmap
@@ -25,7 +27,7 @@ class Template:
     mosaic_N = 6
 
     def __init__(self, file):
-        img = Image.open(file)
+        img = Image.open(file).convert("RGBA")
         bitmap = ImgToBitmap(img)
         bitmap = Template.ClampBitmap(bitmap)
         self.size = len(bitmap)
@@ -70,6 +72,54 @@ class Template:
                 self.mosaicEncoding[i,j] = sum([1 if val == 0 else 0 for val in np.nditer(subBitmap)])/(gridSize**2)
 
         return self.mosaicEncoding
+
+    def EncodeCircle(self, r_count, t_count):
+        """
+        Encodes the data into a radial map
+        """        
+        def tryInBitmap(bitmap, pos):
+            try:
+                return bitmap[pos]
+            except:
+                return 255
+
+        r_unit = self.size/(2*r_count)
+        t_unit = 2*np.pi/t_count
+
+        circleEncoding = np.zeros((r_count-1,t_count-1))
+
+        for i in range(r_count-1):
+            print(100*i/r_count)
+            for j in range(t_count-1):
+                pixels = [tryInBitmap(self.bitmap,getRadialPixel(r, t, (self.size/2,self.size/2)))/255 for r in np.arange(i*r_unit, (i+1)*i*r_unit, 1) for t in np.arange(j*t_unit, (j+1)*t_unit, 0.2)]
+                circleEncoding[i,j] = sum(pixels)/len(pixels) if not len(pixels) == 0 else 0
+
+        self.circleEncoding = circleEncoding
+
+        return circleEncoding
+    
+    def EncodeDistance(self, n=20):
+        """
+        Encodes the data as a radial distribution function
+        """
+
+        def tryInBitmap(bitmap, pos):
+            try:
+                return bitmap[pos]
+            except:
+                return 255
+        
+        centre = (self.size/2,self.size/2)
+        
+        R = np.linspace(0, self.size*int(np.sqrt(2)), n)
+
+        self.distanceEncoding = np.zeros(n)
+
+        for i,r in enumerate(R):
+                radPixels = [tryInBitmap(self.bitmap, getRadialPixel(r, t, centre))/255 for t in np.linspace(0, 2*np.pi, int(2*np.pi*r))]
+                self.distanceEncoding[i] = sum(radPixels)/len(radPixels) if len(radPixels) !=0 else 0
+
+        return self.distanceEncoding
 
     def ClampBitmap(bitmap):
         """
@@ -121,9 +171,70 @@ class Template:
         Template.SaveBitmap(ar, filename)
 
 
+class Model:
+    """Abstract class to define Template matching models"""
+
+    def __init__(self, encoding, compareEncodings, *args):
+        self.encoding = encoding
+        self.templateEncodings = {}
+        self.compareEncodings = compareEncodings
+        self.encodingArgs = args
+
+    def Train(self, directory):
+        if os.path.isfile(directory):
+            targetName = directory.split('/')[-1].split(".")[0]
+            print(targetName)
+            self.templateEncodings[targetName] = self.encoding(Template(directory), *self.encodingArgs)
+        
+        else:
+            for filename in os.listdir(directory):
+                self.Train(os.path.join(directory, filename))
+
+    def Test(self, filename):
+        testEncoding = self.encoding(Template(filename), *self.encodingArgs)
+        comparisons = []
+        for template_key in self.templateEncodings:
+            comparisons.append((self.compareEncodings(testEncoding, self.templateEncodings[template_key]), template_key))
+
+        return sorted(comparisons)[1]
+
+class MosaicModel(Model):
+
+    def __comparison(encoding_a, encoding_b):
+        similarityMatrix = encoding_a - encoding_b
+        return np.sum(np.abs(similarityMatrix))/len(similarityMatrix)
+
+    def __init__(self, n):
+        super().__init__(Template.EncodeMosaic, MosaicModel.__comparison, n)
+
+class CircleModel(Model):
+
+    def __comparison(encoding_a, encoding_b):
+        similarityMatrix = encoding_a - encoding_b
+        return np.sum(np.abs(similarityMatrix))/len(similarityMatrix)
+
+    def __init__(self, r, t):
+        super().__init__(Template.EncodeCircle, MosaicModel.__comparison, r, t)
+
+class DistanceModel(Model):
+
+    def __comparison(encoding_a, encoding_b):
+        similarityMatrix = encoding_a - encoding_b
+        return np.sum(np.abs(similarityMatrix))/len(similarityMatrix)
+
+    def __init__(self, r, t):
+        super().__init__(Template.EncodeDistance(self), MosaicModel.__comparison, n)
+
+
 
 if __name__ == '__main__':
-    if sys.argv[1] == "--png_bmp":
+    if len(sys.argv) == 1:
+        print("A simple image processing script. Converts png or jgp to bitmap.")
+        print("use --png_bmp [image] to convert png image to bmp and clamp it to a square.")
+        print("use --downgrade:n to downgrade clamp png to a square, and downgrade it to an nxn grid.")
+        print("Result files are saved beside the input files.")
+
+    elif sys.argv[1] == "--png_bmp":
         for i in range(2, len(sys.argv)):
             print("Converting " + sys.argv[i])
             Template(sys.argv[i]).Save(sys.argv[i].replace(".png", "_clamped.bmp"))
@@ -133,16 +244,15 @@ if __name__ == '__main__':
             print("Downgrading " + sys.argv[i])
             Template(sys.argv[i]).DownGrade(sys.argv[i].replace(".png", "_downgraded.bmp"), int(sys.argv[1].split(":")[1]))
 
-    # elif len(sys.argv) > 1:
-    #     for i in range(1, len(sys.argv)):
-    #         print("encoding " + sys.argv[i])
-    #         print(Template(sys.argv[i]).EncodeMosaic(6))
-
     else:
-        print("A simple image processing script. Converts png or jgp to bitmap.")
-        print("use --png_bmp [image] to convert png image to bmp and clamp it to a square.")
-        print("use --downgrade:n to downgrade clamp png to a square, and downgrade it to an nxn grid.")
-        print("Result files are saved beside the input files.")
+        for i in range(1, len(sys.argv)):
+            print("encoding " + sys.argv[i])
+            t = Template(sys.argv[i])
+            t.EncodeDistance()
+            t.Save(sys.argv[i].replace(".png", "_circleEncoded.bmp"))
+            
+
+
 
 
 
