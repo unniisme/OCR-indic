@@ -180,15 +180,16 @@ class Model:
         self.compareEncodings = compareEncodings
         self.encodingArgs = args
 
-    def Train(self, directory):
+    def Train(self, directory, verbose = False):
         if os.path.isfile(directory):
             targetName = directory.split('/')[-1].split(".")[0]
-            print(targetName)
+            if verbose:
+                print("Training Target: " + targetName)
             self.templateEncodings[targetName] = self.encoding(Template(directory), *self.encodingArgs)
         
         else:
             for filename in os.listdir(directory):
-                self.Train(os.path.join(directory, filename))
+                self.Train(os.path.join(directory, filename), verbose)
 
     def Test(self, filename):
         testEncoding = self.encoding(Template(filename), *self.encodingArgs)
@@ -196,7 +197,13 @@ class Model:
         for template_key in self.templateEncodings:
             comparisons.append((self.compareEncodings(testEncoding, self.templateEncodings[template_key]), template_key))
 
-        return sorted(comparisons)[1]
+        return sorted(comparisons)[0][1]
+
+    def Save(self, filename):
+        np.save(filename, self.templateEncodings)
+
+    def Load(self, filename):
+        self.templateEncodings = np.load(filename)
 
 class MosaicModel(Model):
 
