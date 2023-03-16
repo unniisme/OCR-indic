@@ -14,7 +14,7 @@ _train_path = "./Letters/ENG-TNR"
 _test_path = "./Letters/archive"
 _base_labels = "english.csv"
 _train_labels = "english_train.csv"
-_predicted = "english_predictions.csv"
+_predicted = "english_predictions_circle.csv"
 
 # Loading database and cutting it down a notch
 if not os.path.isfile(os.path.join(_test_path, _train_labels)):
@@ -39,9 +39,9 @@ N_images = len(testImages)
 
 
 # -------------------------
-print("Mosaic Model")
-print("n=50")
-mosaic = MosaicModel(50)
+print("Circle Model")
+print("r=20, t=20")
+mosaic = CircleModel(20, 20)
 print("--Training--")
 mosaic.Train(_train_path, verbose=True)
 

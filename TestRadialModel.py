@@ -1,4 +1,4 @@
-from ImageTemplate import Model, MosaicModel, CircleModel
+from ImageTemplate import Model, DistanceModel
 import os, sys
 import pandas as pd
 
@@ -13,8 +13,8 @@ def TickTimer():
 _train_path = "./Letters/ENG-TNR"
 _test_path = "./Letters/archive"
 _base_labels = "english.csv"
-_train_labels = "english_train.csv"
-_predicted = "english_predictions.csv"
+_train_labels = "english_train_radial.csv"
+_predicted = "english_predictions_radial.csv"
 
 # Loading database and cutting it down a notch
 if not os.path.isfile(os.path.join(_test_path, _train_labels)):
@@ -39,9 +39,9 @@ N_images = len(testImages)
 
 
 # -------------------------
-print("Mosaic Model")
+print("Radial Model")
 print("n=50")
-mosaic = MosaicModel(50)
+mosaic = DistanceModel(50)
 print("--Training--")
 mosaic.Train(_train_path, verbose=True)
 
