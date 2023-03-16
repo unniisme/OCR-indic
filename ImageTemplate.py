@@ -89,7 +89,6 @@ class Template:
         circleEncoding = np.zeros((r_count-1,t_count-1))
 
         for i in range(r_count-1):
-            print(100*i/r_count)
             for j in range(t_count-1):
                 pixels = [tryInBitmap(self.bitmap,getRadialPixel(r, t, (self.size/2,self.size/2)))/255 for r in np.arange(i*r_unit, (i+1)*i*r_unit, 1) for t in np.arange(j*t_unit, (j+1)*t_unit, 0.2)]
                 circleEncoding[i,j] = sum(pixels)/len(pixels) if not len(pixels) == 0 else 0
@@ -200,10 +199,10 @@ class Model:
         return sorted(comparisons)[0][1]
 
     def Save(self, filename):
-        np.save(filename, self.templateEncodings)
+        np.save(filename, self.templateEncodings, allow_pickle=True)
 
     def Load(self, filename):
-        self.templateEncodings = np.load(filename)
+        self.templateEncodings = np.load(filename, allow_pickle=True)
 
 class MosaicModel(Model):
 
@@ -221,7 +220,7 @@ class CircleModel(Model):
         return np.sum(np.abs(similarityMatrix))/len(similarityMatrix)
 
     def __init__(self, r, t):
-        super().__init__(Template.EncodeCircle, MosaicModel.__comparison, r, t)
+        super().__init__(Template.EncodeCircle, CircleModel.__comparison, r, t)
 
 class DistanceModel(Model):
 
@@ -229,8 +228,8 @@ class DistanceModel(Model):
         similarityMatrix = encoding_a - encoding_b
         return np.sum(np.abs(similarityMatrix))/len(similarityMatrix)
 
-    def __init__(self, r, t):
-        super().__init__(Template.EncodeDistance(self), MosaicModel.__comparison, n)
+    def __init__(self, n):
+        super().__init__(Template.EncodeDistance, DistanceModel.__comparison, n)
 
 
 
@@ -255,8 +254,8 @@ if __name__ == '__main__':
         for i in range(1, len(sys.argv)):
             print("encoding " + sys.argv[i])
             t = Template(sys.argv[i])
-            t.EncodeDistance()
-            t.Save(sys.argv[i].replace(".png", "_circleEncoded.bmp"))
+            t.EncodeCircle(20, 20)
+            Template.SaveBitmap(t.circleEncoding*255, sys.argv[i].replace(".png", "_circleEncoded.bmp"))
             
 
 
