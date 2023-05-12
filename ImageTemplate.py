@@ -49,6 +49,9 @@ class Template:
         Encodes the data about the image into an nxn matrix my cutting the image into a mosaic and counting the number of dark pixels in each subgrid
         """
         def subBitmapPolicy(subBitmap):
+            """
+            Calculates the fraction of zeros in a given array of values.
+            """
             return sum([1 if val == 0 else 0 for val in np.nditer(subBitmap)])/(subBitmap.shape[0] * subBitmap.shape[1])
 
 
@@ -97,26 +100,29 @@ class Template:
 
         return circleEncoding
     
-    def EncodeDistance(self, n=20):
+    def EncodeDistance(self, n=20, rel_centre=(0.5,0.5), spacing=int(np.sqrt(2))):
         """
         Encodes the data as a radial distribution function
         """
+        neg = 255-self.bitmap
 
         def tryInBitmap(bitmap, pos):
             try:
                 return bitmap[pos]
             except:
-                return 255
+                return 0
         
-        centre = (self.size/2,self.size/2)
+        centre = (self.size*rel_centre[0],self.size*rel_centre[1])
         
-        R = np.linspace(0, self.size*int(np.sqrt(2)), n)
+        R = np.linspace(0, self.size*spacing, n)
 
         self.distanceEncoding = np.zeros(n)
 
         for i,r in enumerate(R):
-                radPixels = [tryInBitmap(self.bitmap, getRadialPixel(r, t, centre))/255 for t in np.linspace(0, 2*np.pi, int(2*np.pi*r))]
-                self.distanceEncoding[i] = sum(radPixels)/len(radPixels) if len(radPixels) !=0 else 0
+                radPixels = [tryInBitmap(neg, getRadialPixel(r, t, centre))/255 for t in np.linspace(0, 2*np.pi, int(2*np.pi*r))]
+                self.distanceEncoding[i] = sum(radPixels)
+        
+        self.distanceEncoding /= np.sum(self.distanceEncoding)
 
         return self.distanceEncoding
 
