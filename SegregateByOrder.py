@@ -37,8 +37,10 @@ templates = {}
 
 _test_path = "./Letters/archive/"
 
+target_letter = "A.csv"
+
 sums = []
-data = pd.read_csv(_test_path + "S.csv")
+data = pd.read_csv(_test_path + target_letter)
 out_data = pd.DataFrame(columns=['image', 'label'])
 
 for index, row in data.iterrows():
@@ -56,7 +58,7 @@ groups = group_by_value(sums)
 print(groups)
 out_data['image'] = [x[1] for x in groups]
 out_data['label'] = ['A'] * len(groups)
-out_data.to_csv(_test_path + "S_var.csv", index=False)
+# out_data.to_csv(_test_path + "S_var.csv", index=False)
 
 X = [x[1] for x in sums]
 Y = [x[0] for x in sums]

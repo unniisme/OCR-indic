@@ -28,8 +28,8 @@ def visualizationMatrix_clamped(x):
 for file in os.listdir(directory):
     template_key = file.replace(".png", "")
     # if template_key[0] not in ['A']:
-    if template_key not in ['A', 'B', 'H', 'R']:
-        continue
+    # if template_key not in ['A', 'B', 'H', 'R']:
+    #     continue
     print("Encoding " + file)
     template = Template(os.path.join(directory, file))
     # template.EncodeMosaic(16)
@@ -53,7 +53,7 @@ for file in os.listdir(directory):
     # plt.plot(list(range(len(e4))), e4, label="RT")
     # plt.plot(list(range(len(e5))), e5, label="LB")
 
-    plt.plot(list(range(len(distanceEncoding))), distanceEncoding, label="Average")
+    plt.plot(list(range(len(distanceEncoding))), distanceEncoding, label=template_key)
 
 plt.title("Comparison between radial distributions")
 plt.legend()
